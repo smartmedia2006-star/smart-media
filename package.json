@@ -41,7 +41,7 @@
     "next-auth": "^4.24.6",
     "next-seo": "^6.5.0",
     "next-sitemap": "^4.2.3",
-    "nodemailer": "^6.9.10",
+    "nodemailer": "^7.0.0",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
