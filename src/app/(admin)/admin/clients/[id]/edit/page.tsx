@@ -16,6 +16,22 @@ export default async function EditClientPage({ params }: { params: { id: string 
   const client = await getClient(params.id);
   if (!client) notFound();
 
+  const defaultValues = {
+    email: client.email,
+    companyName: client.companyName,
+    brandName: client.brandName ?? undefined,
+    contactPerson: client.contactPerson,
+    phone: client.phone,
+    countryCode: client.countryCode,
+    preferredChannel: client.preferredChannel,
+    telegramChatId: client.telegramChatId ?? undefined,
+    address: client.address ?? undefined,
+    city: client.city ?? undefined,
+    website: client.website ?? undefined,
+    vatNumber: client.vatNumber ?? undefined,
+    notes: client.notes ?? undefined,
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -28,7 +44,7 @@ export default async function EditClientPage({ params }: { params: { id: string 
         </div>
         <h1 className="text-2xl font-bold font-heading text-gray-900">Edit Client</h1>
       </div>
-      <ClientForm defaultValues={client} clientId={client.id} />
+      <ClientForm defaultValues={defaultValues} clientId={client.id} />
     </div>
   );
 }

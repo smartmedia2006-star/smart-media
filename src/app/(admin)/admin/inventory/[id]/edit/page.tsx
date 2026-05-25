@@ -16,6 +16,18 @@ export default async function EditInventoryItemPage({ params }: { params: { id: 
   const item = await getItem(params.id);
   if (!item) notFound();
 
+  const defaultValues = {
+    name: item.name,
+    sku: item.sku,
+    category: item.category,
+    quantity: item.quantity,
+    unit: item.unit,
+    reorderLevel: item.reorderLevel ?? undefined,
+    currentCost: item.currentCost ?? undefined,
+    supplier: item.supplier ?? undefined,
+    notes: item.notes ?? undefined,
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
@@ -28,7 +40,7 @@ export default async function EditInventoryItemPage({ params }: { params: { id: 
         </div>
         <h1 className="text-2xl font-bold font-heading text-gray-900">Edit Item</h1>
       </div>
-      <InventoryForm defaultValues={item} itemId={item.id} />
+      <InventoryForm defaultValues={defaultValues} itemId={item.id} />
     </div>
   );
 }
