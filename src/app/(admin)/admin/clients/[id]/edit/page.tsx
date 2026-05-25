@@ -28,7 +28,6 @@ export default async function EditClientPage({ params }: { params: { id: string 
     address: client.address ?? undefined,
     city: client.city ?? undefined,
     website: client.website ?? undefined,
-    vatNumber: client.vatNumber ?? undefined,
     notes: client.notes ?? undefined,
   };
 
