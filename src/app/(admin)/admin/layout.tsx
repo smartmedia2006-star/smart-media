@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -6,12 +5,9 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getAuth();
 
+  // Login page renders without sidebar/header
   if (!session) {
-    redirect("/admin/login");
-  }
-
-  if (session.user.role === "VIEWER") {
-    // Viewers can read but must still be logged in
+    return <>{children}</>;
   }
 
   return (
