@@ -37,10 +37,10 @@ export default async function EditContractPage({ params }: { params: { id: strin
     startDate: contract.startDate.toISOString().split("T")[0],
     endDate: contract.endDate.toISOString().split("T")[0],
     totalValue: contract.totalValue,
-    paymentTerms: contract.paymentTerms,
+    paymentTerms: contract.paymentTerms ?? undefined,
     status: contract.status,
-    notes: contract.notes ?? "",
-    signedDocUrl: contract.signedDocUrl ?? "",
+    notes: contract.notes ?? undefined,
+    signedDocUrl: contract.signedDocUrl ?? undefined,
     assetIds: contract.contractAssets.map((a) => a.assetId),
   };
 
