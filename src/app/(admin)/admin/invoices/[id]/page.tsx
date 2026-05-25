@@ -11,7 +11,7 @@ async function getInvoice(id: string) {
     include: {
       client: true,
       contract: {
-        include: { assets: { include: { asset: true } } },
+        include: { contractAssets: { include: { asset: true } } },
       },
     },
   });
@@ -100,7 +100,7 @@ export default async function InvoicePage({ params }: { params: { id: string } }
             <div>
               <dt className="text-gray-500 mb-0.5">Sites</dt>
               <dd className="text-gray-700">
-                {invoice.contract.assets.map((ca) => ca.asset.name).join(", ")}
+                {invoice.contract.contractAssets.map((ca) => ca.asset.name).join(", ")}
               </dd>
             </div>
           </dl>

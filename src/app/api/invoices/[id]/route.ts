@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     where: { id: params.id },
     include: {
       client: true,
-      contract: { include: { assets: { include: { asset: true } } } },
+      contract: { include: { contractAssets: { include: { asset: true } } } },
     },
   });
 
