@@ -1,0 +1,483 @@
+// Smart Media Nepal - Prisma Schema
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  VIEWER
+}
+
+enum AssetFormat {
+  STATIC_BILLBOARD
+  DIGITAL_SCREEN
+  STREET_FURNITURE
+  TRANSIT
+  MALL
+  AIRPORT
+  UNIPOLE
+}
+
+enum AssetStatus {
+  VACANT
+  BOOKED
+  MAINTENANCE
+  COMING_SOON
+}
+
+enum Illumination {
+  FRONT_LIT
+  BACK_LIT
+  DIGITAL
+  NON_ILLUMINATED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  PENDING_RENEWAL
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum MessageChannel {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  SMS
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+  DELIVERED
+}
+
+enum ReminderEventType {
+  CONTRACT_EXPIRY
+  PAYMENT_DUE
+  CAMPAIGN_START
+  CAMPAIGN_END
+  MAINTENANCE_DUE
+  CUSTOM
+}
+
+enum PreferredChannel {
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  ALL
+}
+
+enum EnquiryStatus {
+  NEW
+  CONTACTED
+  CONVERTED
+  CLOSED
+}
+
+enum InventoryCategory {
+  VINYL
+  INK
+  HARDWARE
+  PRINTING
+  ELECTRICAL
+  OTHER
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  image         String?
+  role          UserRole  @default(VIEWER)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  contracts     Contract[]  @relation("CreatedByUser")
+  messagesSent  MessageLog[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Client {
+  id               String           @id @default(cuid())
+  companyName      String
+  brandName        String?
+  contactPerson    String
+  email            String
+  phone            String
+  countryCode      String           @default("+977")
+  telegramChatId   String?
+  preferredChannel PreferredChannel @default(EMAIL)
+  address          String?
+  city             String?
+  website          String?
+  gstVat           String?
+  notes            String?          @db.Text
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  contracts        Contract[]
+  invoices         Invoice[]
+  messageLogs      MessageLog[]
+  enquiries        Enquiry[]
+
+  @@index([email])
+  @@index([companyName])
+  @@map("clients")
+}
+
+model Asset {
+  id               String      @id @default(cuid())
+  name             String
+  code             String      @unique
+  description      String?     @db.Text
+  address          String
+  city             String      @default("Kathmandu")
+  district         String      @default("Bagmati")
+  lat              Float?
+  lng              Float?
+  format           AssetFormat
+  width            Float?
+  height           Float?
+  unit             String      @default("ft")
+  illumination     Illumination @default(NON_ILLUMINATED)
+  status           AssetStatus  @default(VACANT)
+  monthlyRate      Float
+  dailyImpressions Int?
+  photoUrls        String[]
+  specs            String?     @db.Text
+  productionNotes  String?     @db.Text
+  isActive         Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  contractAssets   ContractAsset[]
+
+  @@index([format])
+  @@index([status])
+  @@index([city])
+  @@map("assets")
+}
+
+model Contract {
+  id               String         @id @default(cuid())
+  contractNumber   String         @unique
+  clientId         String
+  startDate        DateTime
+  endDate          DateTime
+  totalValue       Float
+  paymentTerms     String?
+  signedDocUrl     String?
+  status           ContractStatus @default(DRAFT)
+  notes            String?        @db.Text
+  createdById      String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  client           Client         @relation(fields: [clientId], references: [id])
+  createdBy        User           @relation("CreatedByUser", fields: [createdById], references: [id])
+  contractAssets   ContractAsset[]
+  invoices         Invoice[]
+  messageLogs      MessageLog[]
+  scheduledJobs    ScheduledJob[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([endDate])
+  @@map("contracts")
+}
+
+model ContractAsset {
+  id           String   @id @default(cuid())
+  contractId   String
+  assetId      String
+  customRate   Float?
+  startDate    DateTime?
+  endDate      DateTime?
+  notes        String?
+
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  asset        Asset    @relation(fields: [assetId], references: [id])
+
+  @@unique([contractId, assetId])
+  @@map("contract_assets")
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  contractId     String
+  clientId       String
+  amount         Float
+  taxAmount      Float         @default(0)
+  totalAmount    Float
+  dueDate        DateTime
+  paidDate       DateTime?
+  paidAmount     Float?
+  status         InvoiceStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  contract       Contract      @relation(fields: [contractId], references: [id])
+  client         Client        @relation(fields: [clientId], references: [id])
+
+  @@index([contractId])
+  @@index([clientId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model ReminderRule {
+  id              String            @id @default(cuid())
+  name            String
+  eventType       ReminderEventType
+  daysOffset      Int
+  channel         MessageChannel[]
+  templateMessage String            @db.Text
+  subject         String?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([eventType])
+  @@index([isActive])
+  @@map("reminder_rules")
+}
+
+model MessageLog {
+  id             String         @id @default(cuid())
+  clientId       String
+  contractId     String?
+  channel        MessageChannel
+  recipient      String
+  subject        String?
+  messageContent String         @db.Text
+  status         MessageStatus  @default(PENDING)
+  errorMessage   String?
+  sentById       String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  externalId     String?
+  createdAt      DateTime       @default(now())
+
+  client         Client         @relation(fields: [clientId], references: [id])
+  contract       Contract?      @relation(fields: [contractId], references: [id])
+  sentBy         User?          @relation(fields: [sentById], references: [id])
+
+  @@index([clientId])
+  @@index([contractId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("message_logs")
+}
+
+model ScheduledJob {
+  id           String     @id @default(cuid())
+  contractId   String
+  eventType    ReminderEventType
+  scheduledFor DateTime
+  bullJobId    String?
+  status       JobStatus  @default(PENDING)
+  executedAt   DateTime?
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+
+  contract     Contract   @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@map("scheduled_jobs")
+}
+
+model Enquiry {
+  id          String        @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  service     String?
+  message     String        @db.Text
+  status      EnquiryStatus @default(NEW)
+  clientId    String?
+  source      String?
+  ipAddress   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  client      Client?       @relation(fields: [clientId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("enquiries")
+}
+
+model InventoryItem {
+  id            String            @id @default(cuid())
+  name          String
+  sku           String?           @unique
+  category      InventoryCategory
+  quantity      Float
+  unit          String
+  reorderLevel  Float
+  currentCost   Float?
+  supplier      String?
+  supplierPhone String?
+  location      String?
+  lastRestocked DateTime?
+  notes         String?
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([category])
+  @@index([quantity])
+  @@map("inventory_items")
+}
+
+model BlogPost {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  excerpt      String?  @db.Text
+  content      String   @db.Text
+  coverImage   String?
+  author       String
+  category     String
+  tags         String[]
+  seoTitle     String?
+  seoDesc      String?
+  readTime     Int?
+  isPublished  Boolean  @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isPublished])
+  @@index([publishedAt])
+  @@map("blog_posts")
+}
+
+model CaseStudy {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  client       String
+  industry     String
+  summary      String?  @db.Text
+  challenge    String?  @db.Text
+  solution     String?  @db.Text
+  results      String?  @db.Text
+  imageUrls    String[]
+  metrics      Json?
+  isPublished  Boolean  @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([slug])
+  @@map("case_studies")
+}
+
+model ZohoToken {
+  id           String   @id @default(cuid())
+  accessToken  String   @db.Text
+  refreshToken String   @db.Text
+  expiresAt    DateTime
+  scope        String?
+  updatedAt    DateTime @updatedAt
+
+  @@map("zoho_tokens")
+}
+
+model SiteSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
