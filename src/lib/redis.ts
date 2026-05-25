@@ -4,16 +4,20 @@ const globalForRedis = globalThis as unknown as {
   redis: Redis | undefined;
 };
 
-export const redis =
-  globalForRedis.redis ??
-  new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+function createRedis() {
+  const url = process.env.REDIS_URL;
+  if (!url) return null;
+  return new Redis(url, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
     lazyConnect: true,
   });
+}
+
+export const redis = globalForRedis.redis ?? createRedis();
 
 if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis;
+  globalForRedis.redis = redis ?? undefined;
 }
 
 export default redis;

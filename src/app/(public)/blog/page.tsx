@@ -3,7 +3,7 @@ import { buildSEOMeta, buildLocalBusinessSchema, buildBreadcrumbSchema } from "@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-export const revalidate = 1800;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = buildSEOMeta({
   title: "Advertising Blog Nepal | OOH & Digital Marketing Insights",
